@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Fusion Pro - Penggabung PDF Modern</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- Reset & Variabel CSS --- */
+        :root {
+            --bg-color: #0a192f;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-color: #e6f1ff;
+            --primary-blue: #007bff;
+            --accent-yellow: #ffc107;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(0, 123, 255, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, rgba(255, 193, 7, 0.08) 0px, transparent 50%);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        .glass-container { 
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            padding: 40px;
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+            position: relative;
+            overflow: hidden; 
+        }
+
+        h2 { 
+            font-weight: 700;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, var(--primary-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle { font-size: 14px; color: #8892b0; margin-bottom: 30px; font-weight: 300; }
+        .upload-section { margin-bottom: 30px; }
+
+        .custom-file-upload {
+            display: inline-block; padding: 15px 30px; cursor: pointer;
+            background: rgba(0, 123, 255, 0.1); border: 2px dashed var(--primary-blue);
+            border-radius: 50px; color: var(--primary-blue); font-weight: 600; font-size: 14px; transition: all 0.3s ease;
+        }
+
+        .custom-file-upload:hover { background: rgba(0, 123, 255, 0.2); transform: translateY(-2px); }
+        input[type="file"] { display: none; }
+
+        #instruksi { font-size: 13px; color: var(--accent-yellow); margin-bottom: 20px; display: none; font-weight: 400; text-transform: uppercase; letter-spacing: 1px; }
+        #fileList { list-style-type: none; margin: 20px 0; display: flex; flex-direction: column; gap: 12px; }
+
+        .file-item { 
+            background: var(--card-bg); backdrop-filter: blur(4px); border: 1px solid var(--glass-border);
+            padding: 18px 25px; border-radius: 12px; cursor: grab; display: flex; align-items: center; justify-content: space-between;
+            opacity: 0; transform: translateY(10px); animation: slideIn 0.4s forwards;
+        }
+
+        @keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
+        .file-item:active { cursor: grabbing; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .file-item:hover { background-color: rgba(255, 255, 255, 0.12); border-color: rgba(255,255,255,0.2); }
+
+        .file-info { display: flex; align-items: center; gap: 15px; text-align: left; }
+        .pdf-icon { font-size: 24px; color: var(--primary-blue); }
+        .file-name { font-weight: 600; color: var(--text-color); font-size: 14px; word-break: break-all;}
+        
+        .drag-handle { color: rgba(255, 255, 255, 0.3); font-size: 24px; user-select: none; }
+        .sortable-ghost { opacity: 0.1; background-color: var(--primary-blue) !important; border: 2px solid var(--primary-blue); }
+
+        #mergeBtn { 
+            background: linear-gradient(135deg, var(--accent-yellow) 0%, #ff9f00 100%);
+            color: #000; border: none; padding: 18px 30px; font-size: 16px; 
+            border-radius: 50px; cursor: pointer; display: none; width: 100%;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3); transition: all 0.3s ease; position: relative; overflow: hidden;
+        }
+        #mergeBtn:hover { box-shadow: 0 6px 20px rgba(255, 193, 7, 0.5); transform: translateY(-2px); }
+        #mergeBtn:disabled { background: #555; color: #aaa; cursor: not-allowed; box-shadow: none; transform: none; }
+
+        /* --- Tampilan Proses Loading --- */
+        #loadingOverlay {
+            display: none; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 25, 47, 0.9); backdrop-filter: blur(5px);
+            flex-direction: column; justify-content: center; align-items: center;
+            z-index: 10; border-radius: 20px;
+        }
+
+        .spinner {
+            width: 50px; height: 50px;
+            border: 5px solid rgba(255, 193, 7, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent-yellow);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #loadingText {
+            color: var(--accent-yellow); font-weight: 600; font-size: 16px; margin-bottom: 10px;
+        }
+        
+        #loadingDetail {
+            color: #e6f1ff; font-size: 13px; font-weight: 300;
+        }
+
+        #status { margin-top: 25px; font-size: 14px; font-weight: 400; min-height: 20px; }
+
+        /* --- Tombol Saweria --- */
+        .saweria-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 25px;
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid var(--accent-yellow);
+            color: var(--accent-yellow);
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .saweria-btn:hover {
+            background: var(--accent-yellow);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* --- Tanda Tangan Pembuat --- */
+        .author-signature {
+            position: fixed; bottom: 20px; right: 30px; font-size: 11px;
+            color: rgba(230, 241, 255, 0.4); text-align: right; display: flex; flex-direction: column; gap: 2px; user-select: none; letter-spacing: 1px;
+        }
+        .author-signature span.crafted-text { color: rgba(230, 241, 255, 0.6); font-weight: 300; }
+        .author-signature p.author-name { color: var(--accent-yellow); font-weight: 600; text-transform: uppercase; text-shadow: 0 0 4px rgba(255, 193, 7, 0.5); }
+    </style>
+</head>
+<body>
+
+    <div class="glass-container">
+        
+        <div id="loadingOverlay">
+            <div class="spinner"></div>
+            <div id="loadingText">MENGINISIASI MESIN FUSION...</div>
+            <div id="loadingDetail">Mohon jangan tutup jendela ini</div>
+        </div>
+
+        <h2>PDF Fusion Pro</h2>
+        <p class="subtitle">Gabungkan file PDF Anda dalam urutan sempurna. Cepat, aman, dan canggih.</p>
+        
+        <div class="upload-section">
+            <label for="fileInput" class="custom-file-upload">
+                + PILIH FILE PDF
+            </label>
+            <input type="file" id="fileInput" accept="application/pdf" multiple>
+        </div>
+
+        <p id="instruksi">▼ Tahan dan geser untuk mengatur urutan ▼</p>
+        
+        <ul id="fileList"></ul>
+        
+        <button id="mergeBtn" onclick="mulaiPenggabungan()">Gabungkan Dokumen Now</button>
+        
+        <p id="status"></p>
+
+        <!-- Tombol Saweria Ditambahkan Di Sini -->
+        <a href="https://saweria.co/irwanbahalap" target="_blank" class="saweria-btn">
+            ☕ Traktir Kopi via Saweria
+        </a>
+    </div>
+
+    <div class="author-signature">
+        <span class="crafted-text">Crafted with Fusion Pro</span>
+        <p class="author-name">by Irwan Setia Rahman</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            window.fileArray = []; 
+            const fileListElement = document.getElementById('fileList');
+
+            try {
+                if (typeof Sortable !== 'undefined') {
+                    new Sortable(fileListElement, {
+                        animation: 250, 
+                        ghostClass: 'sortable-ghost',
+                        handle: '.file-item' 
+                    });
+                }
+            } catch (error) { console.error("Drag-and-drop error:", error); }
+
+            document.getElementById('fileInput').addEventListener('change', function(event) {
+                const files = event.target.files;
+                window.fileArray = []; 
+                fileListElement.innerHTML = ''; 
+                document.getElementById('status').innerText = '';
+
+                if (files.length > 0) {
+                    document.getElementById('instruksi').style.display = 'block';
+                    
+                    if (files.length >= 2) {
+                        document.getElementById('mergeBtn').style.display = 'block';
+                    } else {
+                        document.getElementById('mergeBtn').style.display = 'none';
+                        document.getElementById('status').innerText = "⚠️ Pilih minimal 2 file PDF.";
+                        document.getElementById('status').style.color = "#ffc107"; 
+                    }
+
+                    Array.from(files).forEach((file, index) => {
+                        const idIdUnik = 'pdf-' + index;
+                        window.fileArray.push({ id: idIdUnik, fileData: file });
+
+                        const li = document.createElement('li');
+                        li.className = 'file-item';
+                        li.setAttribute('data-id', idIdUnik);
+                        li.style.animationDelay = (index * 0.05) + 's';
+                        li.innerHTML = `
+                            <div class="file-info">
+                                <span class="pdf-icon">📄</span>
+                                <span class="file-name">${file.name}</span>
+                            </div>
+                            <span class="drag-handle">≡</span>
+                        `;
+                        fileListElement.appendChild(li);
+                    });
+                } else {
+                    document.getElementById('instruksi').style.display = 'none';
+                    document.getElementById('mergeBtn').style.display = 'none';
+                }
+            });
+        });
+
+        // Fungsi pembantu untuk memberi jeda pada browser agar UI loading sempat muncul
+        function jeda(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Fungsi utama yang dipanggil saat tombol diklik
+        async function mulaiPenggabungan() {
+            const elemenDaftar = document.querySelectorAll('#fileList li');
+            const fileTersusun = [];
+            
+            // Menyusun ulang array sesuai urutan drag & drop
+            elemenDaftar.forEach(li => {
+                const id = li.getAttribute('data-id');
+                const fileDitemukan = window.fileArray.find(item => item.id === id);
+                if (fileDitemukan) fileTersusun.push(fileDitemukan.fileData);
+            });
+
+            if (fileTersusun.length < 2) return;
+
+            // Tampilkan layar loading
+            const overlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            const loadingDetail = document.getElementById('loadingDetail');
+            const statusBox = document.getElementById('status');
+            
+            overlay.style.display = 'flex';
+            statusBox.innerText = ""; // Bersihkan status sebelumnya
+
+            try {
+                // Pengecekan koneksi ke library PDF-lib
+                if (typeof PDFLib === 'undefined') {
+                    throw new Error("Library PDF gagal dimuat. Cek koneksi internet Anda.");
+                }
+
+                loadingText.innerText = "MENYIAPKAN DOKUMEN BARU...";
+                await jeda(100); // Beri nafas agar teks berubah di layar
+
+                const { PDFDocument } = PDFLib;
+                const pdfBaru = await PDFDocument.create();
+
+                // Memproses file satu per satu dengan indikator progres
+                for (let i = 0; i < fileTersusun.length; i++) {
+                    // Update teks progres di layar
+                    loadingText.innerText = `MEMPROSES FILE ${i + 1} DARI ${fileTersusun.length}`;
+                    loadingDetail.innerText = fileTersusun[i].name;
+                    await jeda(150); // Paksa browser memperbarui tampilan layar
+
+                    // Membaca file
+                    const arrayBuffer = await fileTersusun[i].arrayBuffer();
+                    
+                    // Meload PDF asli
+                    const pdfAsli = await PDFDocument.load(arrayBuffer);
+                    
+                    // Menyalin semua halaman
+                    const halaman = await pdfBaru.copyPages(pdfAsli, pdfAsli.getPageIndices());
+                    halaman.forEach((hal) => {
+                        pdfBaru.addPage(hal);
+                    });
+                }
+
+                loadingText.innerText = "MENYUSUN HASIL AKHIR...";
+                loadingDetail.innerText = "Mengekstrak file (ini butuh waktu jika file besar)";
+                await jeda(200);
+
+                // Menyimpan PDF Baru
+                const pdfBytes = await pdfBaru.save();
+                const blob = new Blob([pdfBytes], { type: "application/pdf" });
+                
+                // Memicu unduhan otomatis
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = "PDF_Fusion_Hasil.pdf";
+                link.click();
+
+                // Matikan overlay loading dan tampilkan sukses
+                overlay.style.display = 'none';
+                statusBox.innerText = "✅ Fusion Berhasil! File Anda sudah diunduh.";
+                statusBox.style.color = "#ffc107";
+
+            } catch (error) {
+                console.error("Terjadi Error:", error);
+                overlay.style.display = 'none';
+                statusBox.innerHTML = `❌ <b>GAGAL:</b> ${error.message} <br><small>Pastikan file bukan PDF rusak atau dipassword.</small>`;
+                statusBox.style.color = "#ff4444";
+            }
+        }
+    </script>
+</body>
+</html>

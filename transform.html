@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Transformer Pro - Ultimate Converter</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #0a192f;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-color: #e6f1ff;
+            --accent-green: #20c997;
+            --accent-blue: #007bff;
+            --card-bg: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(32, 201, 151, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, rgba(0, 123, 255, 0.1) 0px, transparent 50%);
+            color: var(--text-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px;
+        }
+
+        .glass-container { 
+            background: var(--glass-bg); backdrop-filter: blur(12px); border-radius: 20px;
+            border: 1px solid var(--glass-border); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            padding: 40px; width: 100%; max-width: 650px; text-align: center; position: relative; overflow: hidden;
+        }
+
+        h2 { 
+            font-weight: 700; font-size: 2rem; margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-green) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle { font-size: 14px; color: #8892b0; margin-bottom: 30px; font-weight: 300; }
+
+        /* --- Panel Pemilihan Format (Kiri & Kanan) --- */
+        .conversion-panel {
+            display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 30px;
+            background: rgba(0,0,0,0.2); padding: 20px; border-radius: 15px; border: 1px solid var(--glass-border);
+        }
+
+        .selector-box { flex: 1; text-align: left; }
+        .selector-box label { display: block; font-size: 12px; color: #8892b0; margin-bottom: 5px; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; }
+        
+        .arrow-icon { font-size: 24px; color: var(--accent-green); font-weight: bold; }
+
+        .custom-select {
+            width: 100%; padding: 12px 15px; border-radius: 8px;
+            background: var(--card-bg); color: var(--text-color);
+            border: 1px solid var(--glass-border); font-family: 'Poppins', sans-serif;
+            font-size: 14px; font-weight: 600; cursor: pointer; outline: none; appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2320c997%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 10px auto;
+        }
+        .custom-select option { background: var(--bg-color); color: #fff; }
+
+        .upload-section { margin-bottom: 20px; }
+        .custom-file-upload {
+            display: inline-block; padding: 15px 30px; cursor: pointer; width: 100%;
+            background: rgba(32, 201, 151, 0.05); border: 2px dashed var(--accent-green);
+            border-radius: 12px; color: var(--accent-green); font-weight: 600; font-size: 14px; transition: all 0.3s ease;
+        }
+        .custom-file-upload:hover { background: rgba(32, 201, 151, 0.15); transform: translateY(-2px); }
+        input[type="file"] { display: none; }
+
+        #fileInfo { color: var(--accent-green); font-size: 13px; font-weight: 400; margin-bottom: 20px; min-height: 20px;}
+
+        #convertBtn { 
+            background: linear-gradient(135deg, #20c997 0%, #007bff 100%);
+            color: #fff; border: none; padding: 18px 30px; font-size: 16px; 
+            border-radius: 50px; cursor: pointer; display: none; width: 100%;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(32, 201, 151, 0.3); transition: all 0.3s ease;
+        }
+        #convertBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(32, 201, 151, 0.5); }
+        #convertBtn:disabled { background: #555; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        #loadingOverlay {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 25, 47, 0.95); backdrop-filter: blur(5px);
+            flex-direction: column; justify-content: center; align-items: center; z-index: 10;
+        }
+        .spinner { width: 50px; height: 50px; border: 5px solid rgba(32, 201, 151, 0.3); border-radius: 50%; border-top-color: #20c997; animation: spin 1s ease-in-out infinite; margin-bottom: 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loadingText { color: var(--text-color); font-weight: 600; font-size: 16px; margin-bottom: 10px; }
+        #status { margin-top: 25px; font-size: 14px; font-weight: 400; min-height: 20px; }
+
+        /* --- Tombol Saweria --- */
+        .saweria-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 25px;
+            background: rgba(32, 201, 151, 0.1);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .saweria-btn:hover {
+            background: var(--accent-green);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(32, 201, 151, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .author-signature { position: fixed; bottom: 20px; right: 30px; font-size: 11px; color: rgba(230, 241, 255, 0.4); text-align: right; display: flex; flex-direction: column; gap: 2px; }
+        .author-signature span.crafted-text { color: rgba(230, 241, 255, 0.6); font-weight: 300; }
+        .author-signature p.author-name { color: #20c997; font-weight: 600; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div class="glass-container">
+        <div id="loadingOverlay">
+            <div class="spinner"></div>
+            <div id="loadingText">MEMPROSES DOKUMEN...</div>
+        </div>
+
+        <h2>PDF Transformer Pro</h2>
+        <p class="subtitle">Konversi berkas Anda secara instan. Pilih format asal dan format tujuan di bawah.</p>
+        
+        <div class="conversion-panel">
+            <div class="selector-box">
+                <label>Format Asal (Dari)</label>
+                <select id="fromFormat" class="custom-select" onchange="perbaruiUI()">
+                    <option value="pdf">📄 PDF</option>
+                    <option value="jpg">🖼️ GAMBAR (JPG/PNG)</option>
+                </select>
+            </div>
+
+            <div class="arrow-icon">➡</div>
+
+            <div class="selector-box">
+                <label>Format Tujuan (Menjadi)</label>
+                <select id="toFormat" class="custom-select" onchange="perbaruiUI()">
+                    <option value="jpg">🖼️ GAMBAR (JPG/PNG)</option>
+                    <option value="pdf">📄 PDF</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="upload-section">
+            <label for="fileInput" class="custom-file-upload" id="uploadLabel">
+                + PILIH 1 FILE PDF
+            </label>
+            <input type="file" id="fileInput" accept="application/pdf">
+        </div>
+
+        <div id="fileInfo">Belum ada file yang dipilih.</div>
+        <button id="convertBtn" onclick="eksekusiKonversi()">Mulai Konversi</button>
+        <p id="status"></p>
+
+        <!-- Tombol Saweria Ditambahkan Di Sini -->
+        <a href="https://saweria.co/irwanbahalap" target="_blank" class="saweria-btn">
+            ☕ Traktir Kopi via Saweria
+        </a>
+    </div>
+
+    <div class="author-signature">
+        <span class="crafted-text">Crafted with Transform Pro</span>
+        <p class="author-name">by Irwan Setia Rahman</p>
+    </div>
+
+    <script>
+        let fileTerpilih = [];
+
+        function perbaruiUI() {
+            const from = document.getElementById('fromFormat').value;
+            const to = document.getElementById('toFormat').value;
+            const uploadLabel = document.getElementById('uploadLabel');
+            const fileInput = document.getElementById('fileInput');
+            const status = document.getElementById('status');
+            
+            // Reset state
+            fileTerpilih = [];
+            fileInput.value = '';
+            document.getElementById('fileInfo').innerText = 'Belum ada file yang dipilih.';
+            document.getElementById('convertBtn').style.display = 'none';
+            status.innerText = '';
+
+            // Cek jika format sama
+            if (from === to) {
+                status.innerText = "⚠️ Format asal dan tujuan tidak boleh sama.";
+                status.style.color = "#ffc107";
+                fileInput.disabled = true;
+                uploadLabel.style.opacity = "0.5";
+                uploadLabel.style.cursor = "not-allowed";
+                return;
+            } else {
+                fileInput.disabled = false;
+                uploadLabel.style.opacity = "1";
+                uploadLabel.style.cursor = "pointer";
+            }
+
+            // Atur input file
+            if (from === 'pdf') {
+                uploadLabel.innerText = '+ PILIH 1 FILE PDF';
+                fileInput.accept = 'application/pdf';
+                fileInput.removeAttribute('multiple');
+            } else if (from === 'jpg') {
+                uploadLabel.innerText = '+ PILIH BANYAK GAMBAR (JPG/PNG)';
+                fileInput.accept = 'image/jpeg, image/jpg, image/png';
+                fileInput.setAttribute('multiple', 'true');
+            }
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            // Mengambil file dan langsung mengurutkannya berdasarkan nama (natural sort)
+            fileTerpilih = Array.from(event.target.files).sort((a, b) => {
+                return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+            });
+            
+            const from = document.getElementById('fromFormat').value;
+            const infoText = document.getElementById('fileInfo');
+            const btn = document.getElementById('convertBtn');
+
+            if (fileTerpilih.length > 0) {
+                if (from === 'jpg') {
+                    infoText.innerText = `🖼️ ${fileTerpilih.length} file dipilih siap dirangkai.`;
+                } else {
+                    infoText.innerText = `📄 ${fileTerpilih[0].name} siap diekstrak.`;
+                }
+                btn.style.display = 'block';
+                document.getElementById('status').innerText = '';
+            }
+        });
+
+        function jeda(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+        // FUNGSI EKSEKUSI UTAMA
+        async function eksekusiKonversi() {
+            if (fileTerpilih.length === 0) return;
+
+            const from = document.getElementById('fromFormat').value;
+            const to = document.getElementById('toFormat').value;
+            const statusBox = document.getElementById('status');
+            const overlay = document.getElementById('loadingOverlay');
+            
+            overlay.style.display = 'flex';
+            document.getElementById('convertBtn').disabled = true;
+
+            try {
+                if (from === 'pdf' && to === 'jpg') {
+                    await konversiPdfKeJpg();
+                } else if (from === 'jpg' && to === 'pdf') {
+                    await konversiJpgKePdf();
+                }
+
+                overlay.style.display = 'none';
+                statusBox.innerText = "✅ Proses Selesai! File berhasil diunduh.";
+                statusBox.style.color = "#20c997";
+            } catch (error) {
+                console.error(error);
+                overlay.style.display = 'none';
+                statusBox.innerHTML = `❌ <b>GAGAL:</b> Terjadi kesalahan saat memproses file.`;
+                statusBox.style.color = "#ff4444";
+            } finally {
+                document.getElementById('convertBtn').disabled = false;
+            }
+        }
+
+        // Fungsi PDF ke JPG
+        async function konversiPdfKeJpg() {
+            const file = fileTerpilih[0];
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            
+            const zip = new JSZip(); 
+            const zipFolder = zip.folder(file.name.replace('.pdf', '_Hasil_Gambar'));
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                document.getElementById('loadingText').innerText = `Mengekstrak Halaman ${i}...`;
+                await jeda(100);
+
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 2.5 });
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = viewport.width; canvas.height = viewport.height;
+
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                
+                const imgData = canvas.toDataURL('image/jpeg', 1.0); 
+                const base64Data = imgData.split(',')[1];
+                
+                // Tambahkan padding nol agar nama file berurutan rapi di OS (misal: 01, 02, ... 10)
+                const nomorHalaman = String(i).padStart(3, '0');
+                zipFolder.file(`Halaman_${nomorHalaman}.jpg`, base64Data, {base64: true});
+            }
+
+            document.getElementById('loadingText').innerText = "Membungkus file ZIP...";
+            await jeda(200);
+
+            const zipContent = await zip.generateAsync({type:"blob"});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(zipContent);
+            link.download = `${file.name.replace('.pdf', '')}_Gambar.zip`;
+            link.click();
+        }
+
+        // Fungsi JPG ke PDF
+        async function konversiJpgKePdf() {
+            const { jsPDF } = window.jspdf;
+            const pdfBaru = new jsPDF('p', 'mm', 'a4'); 
+            const pdfLebar = pdfBaru.internal.pageSize.getWidth();
+            const pdfTinggi = pdfBaru.internal.pageSize.getHeight();
+
+            for (let i = 0; i < fileTerpilih.length; i++) {
+                document.getElementById('loadingText').innerText = `Menyusun Gambar ${i+1}...`;
+                await jeda(100);
+
+                const imgDataUrl = await bacaFileSebagaiDataURL(fileTerpilih[i]);
+                const dimensiImg = await ambilDimensiGambar(imgDataUrl);
+                
+                const rasioImg = dimensiImg.width / dimensiImg.height;
+                const rasioPdf = pdfLebar / pdfTinggi;
+
+                let finalLebar, finalTinggi;
+                if (rasioImg > rasioPdf) { finalLebar = pdfLebar; finalTinggi = pdfLebar / rasioImg; } 
+                else { finalTinggi = pdfTinggi; finalLebar = pdfTinggi * rasioImg; }
+
+                const marginX = (pdfLebar - finalLebar) / 2;
+                const marginY = (pdfTinggi - finalTinggi) / 2;
+
+                if (i > 0) pdfBaru.addPage();
+                pdfBaru.addImage(imgDataUrl, 'JPEG', marginX, marginY, finalLebar, finalTinggi);
+            }
+
+            document.getElementById('loadingText').innerText = "Menyelesaikan PDF...";
+            await jeda(200);
+            pdfBaru.save("Kumpulan_Gambar_Hasil.pdf");
+        }
+
+        function bacaFileSebagaiDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function ambilDimensiGambar(dataUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve({ width: img.width, height: img.height });
+                img.src = dataUrl;
+            });
+        }
+    </script>
+</body>
+</html>
